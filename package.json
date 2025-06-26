@@ -30,7 +30,8 @@
     "@remix-run/react": "^2.16.1",
     "@remix-run/serve": "^2.16.1",
     "@shopify/app-bridge-react": "^4.1.10",
-    "@shopify/polaris": "^12.27.0",
+    "@shopify/polaris": "^11.26.0",
+    "@shopify/polaris-icons": "^6.0.0",
     "@shopify/react-i18n": "^7.14.0",
     "@shopify/shopify-app-remix": "^3.7.0",
     "@shopify/shopify-app-session-storage-prisma": "^6.0.0",
@@ -52,7 +53,8 @@
     "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.2.4",
     "typescript": "^5.2.2",
-    "vite": "^6.2.2"
+    "vite": "^6.2.2",
+    "vite-plugin-commonjs": "^0.10.4"
   },
   "workspaces": [
     "extensions/*"

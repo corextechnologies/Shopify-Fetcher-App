@@ -13,7 +13,9 @@ import {
   Divider,
   Tabs,
   Checkbox,
+  Icon,
 } from "@shopify/polaris";
+import { CirclePlusMinor, DeleteMinor } from "@shopify/polaris-icons";
 
 export const loader = async () => {
   const productAttributes = [
@@ -232,13 +234,13 @@ export default function SelectAttributes() {
                           <div style={{ display: "flex", alignItems: "center", paddingTop: "25px" }}>
                             {idx === rows.length - 1 ? (
                               <Button
-                                icon="circlePlus"
+                                icon={<Icon source={CirclePlusMinor} color="base" />}
                                 onClick={handleAddRow}
                                 accessibilityLabel="Add row"
                               />
                             ) : (
                               <Button
-                                icon="delete"
+                                icon={<Icon source={DeleteMinor} color="base" />}
                                 onClick={() => handleDeleteRow(idx)}
                                 destructive
                                 accessibilityLabel="Remove row"
