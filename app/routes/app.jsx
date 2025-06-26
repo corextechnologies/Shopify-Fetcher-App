@@ -25,19 +25,18 @@ export default function App() {
       isEmbeddedApp
       apiKey={apiKey}
       host={host}
-      strictMode={false} // ✅ Added to fix hydration/flicker issues
       i18n={{
         Polaris: {
           Avatar: {
-            label: "Avatar",
-            labelWithInitials: "Avatar with initials {initials}",
+            label: 'Avatar',
+            labelWithInitials: 'Avatar with initials {initials}',
           },
           ContextualSaveBar: {
-            save: "Save",
-            discard: "Discard",
+            save: 'Save',
+            discard: 'Discard',
           },
           TextField: {
-            characterCount: "{count} characters",
+            characterCount: '{count} characters',
           },
         },
       }}
