@@ -34,13 +34,13 @@ export default function App() {
       onClick: () => navigate("/product-details-fetcher"),
       selected: location.pathname === "/product-details-fetcher",
     },
-    {
-      label: "Store Setup",
-      icon: SettingsMajor,
-      url: "/store-setup",
-      onClick: () => navigate("/store-setup"),
-      selected: location.pathname === "/store-setup",
-    },
+    // {
+    //   label: "Store Setup",
+    //   icon: SettingsMajor,
+    //   url: "/store-setup",
+    //   onClick: () => navigate("/store-setup"),
+    //   selected: location.pathname === "/store-setup",
+    // },
   ];
 
   return (
