@@ -3,7 +3,7 @@
 client_id = "632d2e10859229a9d8b27c0af8625609"
 name = "Product Details Fetcher"
 handle = "product-details-fetcher-1"
-application_url = "https://resumes-obtaining-institute-monkey.trycloudflare.com"
+application_url = "https://fan-highways-boutique-pierce.trycloudflare.com"
 embedded = true
 embedded_redirect_url = "/app"
 
@@ -27,7 +27,7 @@ api_version = "2025-04"
 scopes = "read_customers,read_inventory,read_orders,read_product_listings,read_products,write_inventory,write_products"
 
 [auth]
-redirect_urls = ["https://resumes-obtaining-institute-monkey.trycloudflare.com/auth/callback", "https://resumes-obtaining-institute-monkey.trycloudflare.com/auth/shopify/callback", "https://resumes-obtaining-institute-monkey.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://fan-highways-boutique-pierce.trycloudflare.com/auth/callback", "https://fan-highways-boutique-pierce.trycloudflare.com/auth/shopify/callback", "https://fan-highways-boutique-pierce.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

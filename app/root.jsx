@@ -4,8 +4,6 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useLocation,
-  useNavigate,
 } from "@remix-run/react";
 
 import "@shopify/polaris/build/esm/styles.css";
@@ -14,35 +12,9 @@ import en from "@shopify/polaris/locales/en.json";
 import {
   AppProvider,
   Frame,
-  Navigation,
-  TopBar,
 } from "@shopify/polaris";
-import {
-  ProductsMajor,
-  SettingsMajor,
-} from "@shopify/polaris-icons";
 
 export default function App() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const navigationItems = [
-    {
-      label: "Product Details",
-      icon: ProductsMajor,
-      url: "/product-details-fetcher",
-      onClick: () => navigate("/product-details-fetcher"),
-      selected: location.pathname === "/product-details-fetcher",
-    },
-    // {
-    //   label: "Store Setup",
-    //   icon: SettingsMajor,
-    //   url: "/store-setup",
-    //   onClick: () => navigate("/store-setup"),
-    //   selected: location.pathname === "/store-setup",
-    // },
-  ];
-
   return (
     <html lang="en">
       <head>
@@ -58,16 +30,7 @@ export default function App() {
       </head>
       <body>
         <AppProvider i18n={en}>
-          <Frame
-            navigation={
-              <Navigation location={location.pathname}>
-                <Navigation.Section
-                  title="App Pages"
-                  items={navigationItems}
-                />
-              </Navigation>
-            }
-          >
+          <Frame>
             <Outlet />
           </Frame>
           <ScrollRestoration />

@@ -1,58 +1,49 @@
-// app/routes/api/export-products.js
-import { json } from '@remix-run/node';
-import { getApiToken } from '~/utils/tokenStore';
+// // app/routes/api/export-products.jsx
+// import { json } from "@remix-run/node";
+// import { authenticate } from "~/shopify.server"; // built-in for token
 
-export const action = async ({ request }) => {
-  const token = getApiToken();
+// export const loader = async ({ request }) => {
+//   const { session } = await authenticate.admin(request);
+//   const token = session.accessToken;
+//   const shop = session.shop;
 
-  if (!token) {
-    return json({ error: 'Missing token' }, { status: 401 });
-  }
+//   const url = new URL(request.url);
+//   const fields = url.searchParams.get("fields");
 
-  const formData = await request.json();
-  const { storeUrl, selectedFields = [], imageSize = 'original' } = formData;
+//   if (!fields) {
+//     return json({ error: "Missing fields param" }, { status: 400 });
+//   }
 
-  if (!storeUrl || !selectedFields.length) {
-    return json({ error: 'Invalid request: storeUrl and fields required' }, { status: 400 });
-  }
+//   const fieldList = fields.split(",").map(f => f.trim()).filter(Boolean);
 
-  try {
-    const response = await fetch(`https://${storeUrl}/admin/api/2024-04/products.json?limit=10`, {
-      headers: {
-        'X-Shopify-Access-Token': token,
-        'Content-Type': 'application/json',
-      },
-    });
+//   const query = `
+//     {
+//       products(first: 10) {
+//         edges {
+//           node {
+//             ${fieldList.join("\n")}
+//           }
+//         }
+//       }
+//     }
+//   `;
 
-    if (!response.ok) {
-      return json({ error: 'Failed to fetch products' }, { status: response.status });
-    }
+//   try {
+//     const response = await fetch(`https://${shop}/admin/api/2024-04/graphql.json`, {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "X-Shopify-Access-Token": token,
+//       },
+//       body: JSON.stringify({ query }),
+//     });
 
-    const data = await response.json();
+//     const result = await response.json();
+//     const products = result?.data?.products?.edges?.map(edge => edge.node) || [];
 
-    // Transform products to only include selected fields
-    const exportedProducts = data.products.map(product => {
-      const output = {};
-
-      selectedFields.forEach(field => {
-        if (field === 'image') {
-          const imageUrl = product.image?.src;
-          if (imageUrl) {
-            const sizeParam = imageSize !== 'original' ? `_${imageSize}` : '';
-            output.image = imageUrl.replace(/(\.\w+)$/, `${sizeParam}$1`);
-          } else {
-            output.image = null;
-          }
-        } else {
-          output[field] = product[field];
-        }
-      });
-
-      return output;
-    });
-
-    return json({ products: exportedProducts });
-  } catch (error) {
-    return json({ error: 'Error fetching product data', details: error.message }, { status: 500 });
-  }
-};
+//     return json({ products });
+//   } catch (error) {
+//     console.error("GraphQL Fetch Error:", error);
+//     return json({ error: "Failed to fetch products" }, { status: 500 });
+//   }
+// };
