@@ -16,23 +16,45 @@ import {
 import { CirclePlusMinor, DeleteMinor } from "@shopify/polaris-icons";
 
 export default function ProductDetailsFetcher() {
+  // ✅ Full list of all supported backend fields
   const validAttributes = [
-    "title", "description", "vendor", "productType", "handle", "tags", "status",
-    "totalInventory", "createdAt", "updatedAt", "publishedAt", "variants", "images",
-  ];
+  { label: "Title", value: "title" },
+  { label: "Description", value: "description" },
+  { label: "Vendor", value: "vendor" },
+  { label: "Product Type", value: "productType" },
+  { label: "Handle", value: "handle" },
+  { label: "Tags", value: "tags" },
+  { label: "Status", value: "status" },
+  { label: "Total Inventory", value: "totalInventory" },
+  { label: "Created At", value: "createdAt" },
+  { label: "Updated At", value: "updatedAt" },
+  { label: "Published At", value: "publishedAt" },
+
+  // Variants
+  { label: "Variant: Title", value: "variant_title" },
+  { label: "Variant: Price", value: "variant_price" },
+  { label: "Variant: SKU", value: "variant_sku" },
+  { label: "Variant: Size", value: "variant_size" },
+  { label: "Variant: Color", value: "variant_color" },
+
+  // Images
+  { label: "Images (All)", value: "images" },
+  { label: "Image Src", value: "image_src" },
+  { label: "Image Alt", value: "image_alt" },
+];
+
 
   const [selectedTab, setSelectedTab] = useState(0);
   const [rows, setRows] = useState([{ attribute: "", fieldValue: "" }]);
-  const [note, setNote] = useState("");
   const [format, setFormat] = useState("JSON");
   const [imageSize, setImageSize] = useState("original");
   const [isAppEnabled, setIsAppEnabled] = useState(true);
   const [autoUpdateInterval, setAutoUpdateInterval] = useState("disabled");
-  const [apiToken] = useState("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");
+  const [apiToken, setApiToken] = useState("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");
 
   const [storeSetupData, setStoreSetupData] = useState({
-    storeName: "CoreX Tech Store",
-    storeUrl: "https://corex-tech.myshopify.com",
+    storeName: "Pitchertech",
+    storeUrl: "https://pitchertech.myshopify.com",
     language: "english",
     currency: "usd",
     businessField: "fashion",
@@ -61,77 +83,68 @@ export default function ProductDetailsFetcher() {
     setRows(rows.filter((_, i) => i !== index));
   };
 
-  const handleExport = () => {
-    const exportData = {
-      apiToken,
-      storeSetup: storeSetupData,
-      selectedAttributes: rows.filter(row => row.attribute && row.fieldValue),
-      imageSize,
-      format,
-      note,
-    };
+  const handleExport = async () => {
+    const selectedFields = rows
+      .map(row => row.attribute)
+      .filter(attr => attr && attr !== "")
+      .join(",");
 
-    const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
-    });
+    if (!selectedFields) {
+      alert("Please select at least one valid product attribute before exporting.");
+      return;
+    }
 
-    const url = URL.createObjectURL(jsonBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'exported-data.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+    try {
+      const res = await fetch(`/api/export-products`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fields: selectedFields,
+          storeSetup: storeSetupData,
+        }),
+      });
 
-  const handleApiFetch = async () => {
-  const selectedFields = rows
-    .map(row => row.attribute)
-    .filter(attr => attr && attr !== "")
-    .join(",");
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
+      const data = await res.json();
 
-  if (!selectedFields) {
-    alert("Please select at least one valid product attribute.");
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/export-products`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fields: selectedFields,
-        storeSetup: storeSetupData, // ✅ Send manual store setup entered by user
-      }),
-    });
-
-    const data = await res.json();
-
-    const filtered = {
-      ...data,
-      products: data.products.map(product => {
-        const filteredProduct = {};
+      const filteredProducts = data.products.map(product => {
+        const filtered = {};
         rows.forEach(row => {
           const key = row.attribute;
           if (product[key] !== undefined) {
-            filteredProduct[key] = product[key];
+            filtered[key] = product[key];
           }
         });
-        return filteredProduct;
-      }),
-    };
+        return filtered;
+      });
 
-    console.log("Filtered Live API Response:", filtered);
-    setApiResponse(filtered);
-    setShowApiResponse(true);
-  } catch (error) {
-    console.error("Error fetching API data:", error);
-    setApiResponse({ error: "Failed to fetch API data." });
-    setShowApiResponse(true);
-  }
-};
+      const exportData = {
+        storeSetup: storeSetupData,
+        imageSize,
+        format,
+        selectedAttributes: rows.filter(row => row.attribute && row.fieldValue),
+        exportedAt: new Date().toISOString(),
+        products: filteredProducts,
+      };
 
+      const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+
+      const url = URL.createObjectURL(jsonBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pitchertech-product-export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setApiResponse({ ...data, products: filteredProducts });
+      setShowApiResponse(true);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to fetch live product data. Export cancelled.");
+    }
+  };
 
   const tabs = [
     { id: "basic-setup", content: "Basic Setup", panelID: "basic-setup-content" },
@@ -194,7 +207,7 @@ export default function ProductDetailsFetcher() {
   ];
 
   return (
-    <Page fullWidth title="App Configuration">
+    <Page fullWidth title="Pitchertech Product Export">
       <Tabs tabs={tabs} selected={selectedTab} onSelect={setSelectedTab} />
 
       {selectedTab === 0 && (
@@ -216,13 +229,14 @@ export default function ProductDetailsFetcher() {
                 />
               </FormLayout>
             </Card>
-          </Layout.Section>
-          <Layout.Section>
             <Card sectioned>
               <FormLayout>
-                <Text variant="headingMd" as="h2">API Token Management</Text>
-                <TextField label="Current API Token" value={apiToken} readOnly disabled />
-                <Button disabled>Regenerate Token</Button>
+                <Text variant="headingMd" as="h2">API Token</Text>
+                <TextField
+                  label="Admin API Token"
+                  value={apiToken}
+                  onChange={setApiToken}
+                />
               </FormLayout>
             </Card>
           </Layout.Section>
@@ -238,28 +252,26 @@ export default function ProductDetailsFetcher() {
                   label="Store Name"
                   value={storeSetupData.storeName}
                   onChange={(value) => setStoreSetupData(prev => ({ ...prev, storeName: value }))}
-                  helpText="Enter the name of your store"
                 />
                 <TextField
                   label="Store URL"
                   value={storeSetupData.storeUrl}
                   onChange={(value) => setStoreSetupData(prev => ({ ...prev, storeUrl: value }))}
-                  helpText="Enter your Shopify store URL"
                 />
                 <Select
-                  label="Choose Language"
+                  label="Language"
                   options={languageOptions}
                   value={storeSetupData.language}
                   onChange={(value) => setStoreSetupData(prev => ({ ...prev, language: value }))}
                 />
                 <Select
-                  label="Choose Currency"
+                  label="Currency"
                   options={currencyOptions}
                   value={storeSetupData.currency}
                   onChange={(value) => setStoreSetupData(prev => ({ ...prev, currency: value }))}
                 />
                 <Select
-                  label="Choose Business Field"
+                  label="Business Field"
                   options={businessFieldOptions}
                   value={storeSetupData.businessField}
                   onChange={(value) => setStoreSetupData(prev => ({ ...prev, businessField: value }))}
@@ -277,7 +289,7 @@ export default function ProductDetailsFetcher() {
               <FormLayout>
                 <Text variant="headingMd" as="h2">Image Sizes</Text>
                 <Select
-                  label="Select image size for export"
+                  label="Export Image Size"
                   options={imageSizeOptions}
                   value={imageSize}
                   onChange={setImageSize}
@@ -292,11 +304,11 @@ export default function ProductDetailsFetcher() {
                 {rows.map((row, idx) => (
                   <FormLayout.Group key={idx} condensed>
                     <Select
-                      label="Attribute"
-                      options={[{ label: "Select attribute...", value: "" }, ...validAttributes.map(attr => ({ label: attr, value: attr }))]}
-                      value={row.attribute}
-                      onChange={(value) => handleAttributeChange(value, idx)}
-                    />
+  label="Attribute"
+  options={[{ label: "Select attribute...", value: "" }, ...validAttributes]}
+  value={row.attribute}
+  onChange={(value) => handleAttributeChange(value, idx)}
+/>
                     <TextField
                       label="Field Name"
                       value={row.fieldValue}
@@ -314,9 +326,8 @@ export default function ProductDetailsFetcher() {
               </FormLayout>
             </Card>
 
-            <div style={{ margin: "20px 0", display: "flex", flexWrap: "wrap", gap: 10 }}>
-              <Button primary onClick={handleExport}>Export JSON File</Button>
-              <Button onClick={handleApiFetch}>Get Live API Data - JSON</Button>
+            <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
+              <Button primary onClick={handleExport}>Export JSON File (Live)</Button>
               {apiResponse && (
                 <Button onClick={() => setShowApiResponse(prev => !prev)}>
                   {showApiResponse ? "Hide Response" : "Show Response"}
@@ -329,7 +340,7 @@ export default function ProductDetailsFetcher() {
             <Layout.Section oneHalf>
               <Card title="Live API Response" sectioned>
                 <pre style={{ maxHeight: 400, overflowY: "auto", background: "#f6f6f7", padding: 10 }}>
-                  {apiResponse ? JSON.stringify(apiResponse, null, 2) : "Click 'Get Live Data' to view Shopify data"}
+                  {apiResponse ? JSON.stringify(apiResponse, null, 2) : "Export to view data"}
                 </pre>
               </Card>
             </Layout.Section>

@@ -1,11 +1,10 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "632d2e10859229a9d8b27c0af8625609"
-name = "Product Details Fetcher"
-handle = "product-details-fetcher-1"
-application_url = "https://fan-highways-boutique-pierce.trycloudflare.com"
+client_id = "595c12145fd0987b916bc6bf61f1007f"
+name = "Quicksearch"
+handle = "quicksearch"
+application_url = "https://skins-expiration-saturn-theater.trycloudflare.com"
 embedded = true
-embedded_redirect_url = "/app"
 
 [build]
 automatically_update_urls_on_dev = true
@@ -16,30 +15,18 @@ api_version = "2025-04"
 
   [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
-  uri = "https://midlands-yrs-breaking-volt.trycloudflare.com/webhooks/app/scopes_update"
+  uri = "/webhooks/app/scopes_update"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
-  uri = "https://midlands-yrs-breaking-volt.trycloudflare.com/webhooks/app/uninstalled"
+  uri = "/webhooks/app/uninstalled"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,read_inventory,read_orders,read_product_listings,read_products,write_inventory,write_products"
+scopes = "read_inventory,read_product_listings,read_products,write_products"
 
 [auth]
-redirect_urls = ["https://fan-highways-boutique-pierce.trycloudflare.com/auth/callback", "https://fan-highways-boutique-pierce.trycloudflare.com/auth/shopify/callback", "https://fan-highways-boutique-pierce.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://skins-expiration-saturn-theater.trycloudflare.com/auth/callback", "https://skins-expiration-saturn-theater.trycloudflare.com/auth/shopify/callback", "https://skins-expiration-saturn-theater.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
-
-[ui.nav]
-title = "Product Details Fetcher"
-url = "/app/product-details-fetcher"
-
-  [[ui.nav.menu]]
-  title = "Product Details Fetcher"
-  url = "/app/product-details-fetcher"
-
-  [[ui.nav.menu]]
-  title = "Store Setup"
-  url = "/app/store-setup"

@@ -1,69 +1,84 @@
-// app/routes/api.export-products.js
 import { json } from "@remix-run/node";
 
-const ADMIN_API_TOKEN = "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";
-const SHOP_DOMAIN = "corex-tech.myshopify.com";
+const ADMIN_API_TOKEN = "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";
+const SHOP_DOMAIN = "pitchertech.myshopify.com";
 
-const expandedFields = {
-  variants: `
-    variants(first: 10) {
-      edges {
-        node {
-          id
-          title
-          price
-          sku
-        }
-      }
-    }
-  `,
-  images: `
-    images(first: 10) {
-      edges {
-        node {
-          src
-          altText
-        }
-      }
-    }
-  `
+// Field mappings
+const variantFieldsMap = {
+  variant_title: "title",
+  variant_price: "price",
+  variant_sku: "sku",
+  variant_size: "selectedOptions",
+  variant_color: "selectedOptions",
 };
 
-const fieldAliases = {
-  price: "variants",
-  sku: "variants",
-  id: "variants",
-  variant_title: "variants"
+const imageFieldsMap = {
+  image_src: "src",
+  image_alt: "altText",
 };
 
+// Build dynamic GraphQL field structure
 const buildProductFields = (selectedFields) => {
-  const resolvedFields = new Set();
+  const rootFields = [];
+  const variantFields = new Set();
+  const imageFields = new Set();
+
   for (const field of selectedFields) {
-    if (fieldAliases[field]) {
-      resolvedFields.add(fieldAliases[field]);
+    if (variantFieldsMap[field]) {
+      if (field === "variant_size" || field === "variant_color") {
+        variantFields.add("selectedOptions { name value }");
+      } else {
+        variantFields.add(variantFieldsMap[field]);
+      }
+    } else if (imageFieldsMap[field]) {
+      imageFields.add(imageFieldsMap[field]);
+    } else if (field === "images") {
+      imageFields.add("src");
+      imageFields.add("altText");
+    } else if (field === "variants") {
+      variantFields.add("id");
+      variantFields.add("title");
+      variantFields.add("sku");
+      variantFields.add("price");
     } else {
-      resolvedFields.add(field);
+      rootFields.push(field);
     }
   }
 
-  const simpleFields = [...resolvedFields]
-    .filter(f => !expandedFields[f])
-    .join("\n");
+  const variantBlock = variantFields.size
+    ? `variants(first: 10) {
+        edges {
+          node {
+            ${[...variantFields].join("\n")}
+          }
+        }
+      }`
+    : "";
 
-  const complexFields = [...resolvedFields]
-    .filter(f => expandedFields[f])
-    .map(f => expandedFields[f])
-    .join("\n");
+  const imageBlock = imageFields.size
+    ? `images(first: 10) {
+        edges {
+          node {
+            ${[...imageFields].join("\n")}
+          }
+        }
+      }`
+    : "";
 
-  return { simpleFields, complexFields };
+  return {
+    rootFields: rootFields.join("\n"),
+    variantBlock,
+    imageBlock,
+  };
 };
 
+// Fetch all products with pagination
 const fetchAllProducts = async (fields) => {
   const products = [];
   let hasNextPage = true;
   let endCursor = null;
 
-  const { simpleFields, complexFields } = buildProductFields(fields);
+  const { rootFields, variantBlock, imageBlock } = buildProductFields(fields);
 
   while (hasNextPage) {
     const graphqlQuery = `
@@ -71,8 +86,9 @@ const fetchAllProducts = async (fields) => {
         products(first: 100${endCursor ? `, after: "${endCursor}"` : ""}) {
           edges {
             node {
-              ${simpleFields}
-              ${complexFields}
+              ${rootFields}
+              ${variantBlock}
+              ${imageBlock}
             }
           }
           pageInfo {
@@ -99,7 +115,51 @@ const fetchAllProducts = async (fields) => {
     }
 
     const edges = result?.data?.products?.edges || [];
-    products.push(...edges.map(edge => edge.node));
+
+    for (const edge of edges) {
+      const product = edge.node;
+      const flatProduct = { ...product };
+
+      // Flatten variants
+      const variantNode = product.variants?.edges?.[0]?.node || {};
+
+      if (fields.includes("variant_title")) flatProduct.variant_title = variantNode.title;
+      if (fields.includes("variant_price")) flatProduct.variant_price = variantNode.price;
+      if (fields.includes("variant_sku")) flatProduct.variant_sku = variantNode.sku;
+
+      let foundSize = false;
+let foundColor = false;
+
+const options = variantNode.selectedOptions || [];
+
+for (const opt of options) {
+  if (fields.includes("variant_size") && opt.name.toLowerCase().includes("size")) {
+    flatProduct.variant_size = opt.value;
+    foundSize = true;
+  }
+  if (fields.includes("variant_color") && opt.name.toLowerCase().includes("color")) {
+    flatProduct.variant_color = opt.value;
+    foundColor = true;
+  }
+}
+
+// Fallbacks if size/color option not found
+if (fields.includes("variant_size") && !foundSize) {
+  flatProduct.variant_size = "N/A";
+}
+if (fields.includes("variant_color") && !foundColor) {
+  flatProduct.variant_color = "N/A";
+}
+
+
+      // Flatten images
+      const imageNode = product.images?.edges?.[0]?.node || {};
+      if (fields.includes("image_src")) flatProduct.image_src = imageNode.src;
+      if (fields.includes("image_alt")) flatProduct.image_alt = imageNode.altText;
+
+      products.push(flatProduct);
+    }
+
     hasNextPage = result?.data?.products?.pageInfo?.hasNextPage;
     endCursor = result?.data?.products?.pageInfo?.endCursor;
   }
@@ -107,7 +167,7 @@ const fetchAllProducts = async (fields) => {
   return products;
 };
 
-// ✅ GET: used by browser/test tools
+// GET for manual testing
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const fieldsParam = url.searchParams.get("fields");
@@ -116,25 +176,20 @@ export const loader = async ({ request }) => {
     return json({ error: "Missing required parameter: fields" }, { status: 400 });
   }
 
-  const selectedFields = fieldsParam
-    .split(",")
-    .map(f => f.trim())
-    .filter(Boolean);
-
-  const storeSetup = {
-    storeName: "CoreX Tech Store",
-    storeUrl: "https://corex-tech.myshopify.com",
-    language: "English",
-    currency: "USD",
-    businessField: "E-commerce",
-  };
+  const selectedFields = fieldsParam.split(",").map(f => f.trim()).filter(Boolean);
 
   try {
     const products = await fetchAllProducts(selectedFields);
 
     return json({
-      storeSetup,
-      apiToken: ADMIN_API_TOKEN.replace(/^(.{10}).+/, "$1******"),
+      storeSetup: {
+        storeName: "Pitchertech",
+        storeUrl: "https://pitchertech.myshopify.com",
+        language: "English",
+        currency: "USD",
+        businessField: "Fashion",
+      },
+      apiToken: ADMIN_API_TOKEN,
       selectedFields,
       products,
     });
@@ -144,30 +199,27 @@ export const loader = async ({ request }) => {
   }
 };
 
-// ✅ POST: used by frontend to pass custom storeSetup
+// POST for frontend export
 export const action = async ({ request }) => {
   try {
     const body = await request.json();
     const fieldsParam = body.fields;
 
-    const selectedFields = fieldsParam
-      .split(",")
-      .map(f => f.trim())
-      .filter(Boolean);
+    const selectedFields = fieldsParam.split(",").map(f => f.trim()).filter(Boolean);
 
     const customStoreSetup = body.storeSetup || {
-      storeName: "Default Store",
-      storeUrl: "https://example.com",
+      storeName: "Pitchertech",
+      storeUrl: "https://pitchertech.myshopify.com",
       language: "English",
       currency: "USD",
-      businessField: "E-commerce",
+      businessField: "Fashion",
     };
 
     const products = await fetchAllProducts(selectedFields);
 
     return json({
       storeSetup: customStoreSetup,
-      apiToken: ADMIN_API_TOKEN.replace(/^(.{10}).+/, "$1******"),
+      apiToken: ADMIN_API_TOKEN,
       selectedFields,
       products,
     });
